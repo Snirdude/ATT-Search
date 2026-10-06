@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.1
+- Fixed the saved names starting over (on any character, or after a reload) once enough of them had loaded. The game can only load a saved file with up to about 262,000 different values in it, and a big cache went over that: the game skipped the file and the lookups began again from the start. Saved names are now packed into a few long strings, so the file stays far below the limit, and it's about half the size. Names saved by 1.2.0 that still load are kept.
+- Fixed items being indexed as whole item links instead of their names, so searches like "item" or a number no longer match every item, and an item name now ranks as a match from its first letter.
+- The saved names are shared by all characters on the account (they always were; the reset above made it look otherwise).
+
 ## 1.2.0
 - Fixed for real: the quest log, quest objectives (tooltips, map, minimap), "Quest accepted" messages and ATT's quest names ("Retrieving data", "Quest #1234*") going missing after login, and especially during party sync. Quest data comes from the server one quest at a time, and the game gives each account a small allowance for it that the quest log and All The Things need too. ATT-Search used up that allowance:
   - Building the index asked the server about every quest in All The Things (tens of thousands) at every login. 1.1.7's fix didn't work: the check it switched to also loads the quest from the server. Reading some names from All The Things does the same.

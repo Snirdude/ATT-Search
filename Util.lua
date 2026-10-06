@@ -34,7 +34,9 @@ function Util.CleanText(text)
 	text = gsub(text, "|r", "")
 	text = gsub(text, "|T.-|t", "")
 	text = gsub(text, "|A.-|a", "")
+	text = gsub(text, "|H.-|h%[?(.-)%]?|h", "%1") -- links: just the shown name, no brackets
 	text = gsub(text, "|n", " ")
+	text = gsub(text, "[\r\n\t]", " ")
 	text = Util.Trim(text)
 	if text == "" then return nil end
 	return text

@@ -22,7 +22,8 @@ local ATT, Util, Options = ns.ATT, ns.Util, ns.Options
 local Index = {}
 ns.Index = Index
 
-local strlower, strfind, strsub, tremove, sort = string.lower, string.find, string.sub, table.remove, table.sort
+local strlower, strfind, strsub, gsub, gmatch = string.lower, string.find, string.sub, string.gsub, string.gmatch
+local tremove, sort, concat = table.remove, table.sort, table.concat
 local debugprofilestop, type, tostring, coroutine = debugprofilestop, type, tostring, coroutine
 local IsItemDataCachedByID = C_Item and C_Item.IsItemDataCachedByID
 local RequestLoadItemDataByID = C_Item and C_Item.RequestLoadItemDataByID
@@ -161,24 +162,86 @@ end
 -- (achievements, zones...) aren't saved, which keeps the file small. The cache resets when
 -- the game language changes, and entries for things no longer in ATT are pruned after
 -- each full build.
+--
+-- On disk the names are packed into a few long strings of "key<tab>name" lines. The game loads
+-- a saved variables file as one Lua chunk, and a chunk holds at most 262,143 different
+-- constants. As a plain table every key and every name was one, so a big cache went over that
+-- limit: the file failed to load and the cache started over (1.2.0 and earlier).
 
-local CACHE_VERSION = 1
-local nameCache
+local CACHE_VERSION = 2
+local PACK_SIZE = 1000 -- names per saved string
+local nameCache        -- key -> name, unpacked once per session
 
 -- Keys whose names are free again next session, so they aren't saved.
 local NOT_SAVED = setmetatable({ criteriaID = true, objectID = true }, { __index = LOCAL_KEYS })
 
-local function NameCache()
-	if nameCache then return nameCache end
+-- ATTSearchDB, made current: a new language or an unknown version starts it over.
+local function SavedDB()
 	local db, locale = ATTSearchDB, GetLocale()
-	if type(db) ~= "table" or db.version ~= CACHE_VERSION or db.locale ~= locale or type(db.names) ~= "table" then
+	if type(db) ~= "table" or db.locale ~= locale or (db.version ~= CACHE_VERSION and db.version ~= 1) then
 		Options.Get("lookups") -- moves an old "lookups off" out of here before it's replaced
-		db = { version = CACHE_VERSION, locale = locale, names = {} }
+		db = { version = CACHE_VERSION, locale = locale }
 		ATTSearchDB = db
 	end
-	nameCache = db.names
-	return nameCache
+	return db
 end
+
+-- Reads the saved names. `pause`, when given, is called every so often (the build passes
+-- Checkpoint, so a big cache doesn't freeze the game).
+local function LoadNames(pause)
+	if nameCache then return nameCache end
+	local db, cache = SavedDB(), {}
+	if db.version == 1 then
+		-- 1.2.0 and earlier: a plain table, and items saved as whole links ("|hitem:...|h[name]|h").
+		local old, count = type(db.names) == "table" and db.names or {}, 0
+		for key, name in pairs(old) do
+			if type(name) == "string" then
+				cache[key] = gsub(name, "|h.-|h%[?(.-)%]?|h", "%1")
+			end
+			count = count + 1
+			if pause and count % 100 == 0 then pause() end
+		end
+	elseif type(db.packed) == "table" then
+		local packed = db.packed
+		for i = 1, #packed do
+			for key, name in gmatch(packed[i], "([^\t\n]+)\t([^\n]*)") do
+				cache[key] = name
+			end
+			if pause then pause() end
+		end
+	end
+	if nameCache then return nameCache end -- loaded meanwhile, while this one was paused
+	-- Packed again at logout (see below); until then the table is the only copy.
+	db.version, db.names, db.packed = CACHE_VERSION, nil, nil
+	nameCache = cache
+	return cache
+end
+
+local function NameCache()
+	return nameCache or LoadNames()
+end
+
+local function PackNames(cache)
+	local packed, lines, n = {}, {}, 0
+	for key, name in pairs(cache) do
+		n = n + 1
+		lines[n] = key .. "\t" .. name
+		if n == PACK_SIZE then
+			packed[#packed + 1] = concat(lines, "\n", 1, n)
+			n = 0
+		end
+	end
+	if n > 0 then packed[#packed + 1] = concat(lines, "\n", 1, n) end
+	return packed
+end
+
+local saver = CreateFrame("Frame")
+saver:RegisterEvent("PLAYER_LOGOUT") -- also fires on /reload
+saver:SetScript("OnEvent", function()
+	if nameCache and type(ATTSearchDB) == "table" then
+		ATTSearchDB.packed = PackNames(nameCache)
+	end
+end)
 
 -- Quests the server had no data for, per game build: questID -> sessions it was refused in.
 -- A refusal can also mean the server is throttling us, so a quest is only skipped after
@@ -194,8 +257,7 @@ end
 
 function NoDataQuests()
 	if noData then return noData end
-	NameCache() -- makes sure ATTSearchDB is current
-	local db, build = ATTSearchDB, GameBuild()
+	local db, build = SavedDB(), GameBuild()
 	if type(db.noData) ~= "table" or db.noDataBuild ~= build then
 		db.noData, db.noDataBuild = {}, build
 	end
@@ -795,7 +857,7 @@ function Index:Ensure(newRoot)
 	state = "building"
 	Notify()
 	StartJob("build", function()
-		local cache, seen = NameCache(), {}
+		local cache, seen = LoadNames(Checkpoint), {}
 		local stack, top, visited = { root }, 1, 0
 		while top > 0 do
 			local group = stack[top]
