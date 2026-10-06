@@ -1,0 +1,5 @@
+<Bindings>
+	<Binding name="ATTSEARCH_FOCUS" header="ATTSEARCH" category="ADDONS">
+		ATTSearch_Focus()
+	</Binding>
+</Bindings>

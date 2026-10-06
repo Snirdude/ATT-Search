@@ -1,0 +1,21 @@
+## Interface: 11509, 16001, 20506, 30405, 38002, 40402, 50504, 120100, 120105
+## Title: ATT-Search
+## Notes: Unofficial companion for All The Things: adds a search bar to the main list. Type a name, pick a result, and the list expands and scrolls to it.
+## Author: Archdude
+## Version: 1.2.0
+## IconTexture: Interface\Icons\INV_Misc_Spyglass_03
+## Dependencies: AllTheThings
+## SavedVariables: ATTSearchDB, ATTSearchSettings
+## Category-enUS: Collections
+## X-License: MIT
+
+Locales.lua
+Util.lua
+Options.lua
+ATT.lua
+Index.lua
+Filters.lua
+Navigator.lua
+ResultsList.lua
+SearchBar.lua
+Commands.lua
