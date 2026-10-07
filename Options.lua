@@ -57,7 +57,7 @@ local function CreateCheckbox(parent, label, description, key)
 	check.label = check:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
 	check.label:SetPoint("LEFT", check, "RIGHT", 4, 1)
 	check.label:SetText(label)
-	check.description = check:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+	check.description = check:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
 	check.description:SetPoint("TOPLEFT", check, "BOTTOMLEFT", 30, -2)
 	check.description:SetWidth(WIDTH - 40)
 	check.description:SetJustifyH("LEFT")
@@ -73,21 +73,52 @@ panel = CreateFrame("Frame")
 panel.name = addonName
 panel:Hide()
 
-local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+-- Everything sits on `content`, inside a scroll frame, so a small settings window (or a big
+-- status) scrolls instead of running off the bottom. The bar hides when everything fits.
+-- It's the thin bar the game's own settings use, or the old panel bar on a client without it.
+local function HasTemplate(name)
+	return C_XMLUtil and C_XMLUtil.GetTemplateInfo and C_XMLUtil.GetTemplateInfo(name) ~= nil
+end
+
+local scroll
+if ScrollUtil and ScrollUtil.InitScrollFrameWithScrollBar and HasTemplate("MinimalScrollBar") then
+	scroll = CreateFrame("ScrollFrame", nil, panel)
+	scroll:SetPoint("TOPLEFT", 0, -4)
+	scroll:SetPoint("BOTTOMRIGHT", -22, 4)
+	local bar = CreateFrame("EventFrame", nil, panel, "MinimalScrollBar")
+	bar:SetPoint("TOPLEFT", scroll, "TOPRIGHT", 6, 0)
+	bar:SetPoint("BOTTOMLEFT", scroll, "BOTTOMRIGHT", 6, 0)
+	ScrollUtil.InitScrollFrameWithScrollBar(scroll, bar)
+	bar:SetHideIfUnscrollable(true)
+	scroll:EnableMouseWheel(true)
+else
+	scroll = CreateFrame("ScrollFrame", nil, panel, "UIPanelScrollFrameTemplate")
+	scroll:SetPoint("TOPLEFT", 0, -4)
+	scroll:SetPoint("BOTTOMRIGHT", -30, 4) -- this bar sits outside the frame, on its right
+	scroll.scrollBarHideable = true
+end
+local content = CreateFrame("Frame", nil, scroll)
+content:SetSize(WIDTH + 32, 1)
+scroll:SetScrollChild(content)
+scroll:SetScript("OnSizeChanged", function(_, width)
+	content:SetWidth(math.max(width, 1))
+end)
+
+local title = content:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
 title:SetPoint("TOPLEFT", 16, -16)
 title:SetText(addonName)
 
-local lookupsCheck = CreateCheckbox(panel, L.OPT_LOOKUPS,
+local lookupsCheck = CreateCheckbox(content, L.OPT_LOOKUPS,
 	Util.HasPartySync() and L.OPT_LOOKUPS_DESC or L.OPT_LOOKUPS_DESC_NO_SYNC, "lookups")
 lookupsCheck:SetPoint("TOPLEFT", title, "BOTTOMLEFT", -2, -16)
 
-local itemsCheck = CreateCheckbox(panel, L.OPT_ITEMS, L.OPT_ITEMS_DESC, "loadItems")
+local itemsCheck = CreateCheckbox(content, L.OPT_ITEMS, L.OPT_ITEMS_DESC, "loadItems")
 itemsCheck:SetPoint("TOPLEFT", lookupsCheck.description, "BOTTOMLEFT", -30, -12)
 
-local questsCheck = CreateCheckbox(panel, L.OPT_QUESTS, L.OPT_QUESTS_DESC, "searchQuests")
+local questsCheck = CreateCheckbox(content, L.OPT_QUESTS, L.OPT_QUESTS_DESC, "searchQuests")
 questsCheck:SetPoint("TOPLEFT", itemsCheck.description, "BOTTOMLEFT", -30, -12)
 
-local warning = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalSmall")
+local warning = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
 warning:SetPoint("TOPLEFT", questsCheck.description, "BOTTOMLEFT", 0, -6)
 warning:SetWidth(WIDTH - 40)
 warning:SetJustifyH("LEFT")
@@ -120,42 +151,48 @@ StaticPopupDialogs.ATTSEARCH_CLEAR_CACHE = {
 	preferredIndex = 3,
 }
 
-local actionsHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+local actionsHeader = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
 actionsHeader:SetPoint("TOPLEFT", warning, "BOTTOMLEFT", -30, -16)
 actionsHeader:SetText(L.OPT_ACTIONS)
 
+-- A button with its description on the right. Returns the row, as tall as the taller of the
+-- two, so a description that wraps onto several lines pushes the next row down.
 local function CreateAction(anchor, label, description, onClick)
-	local button = CreateFrame("Button", nil, panel, "UIPanelButtonTemplate")
+	local row = CreateFrame("Frame", nil, content)
+	row:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -10)
+	row:SetWidth(WIDTH)
+	local button = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
 	button:SetSize(170, 22)
-	button:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -10)
+	button:SetPoint("TOPLEFT")
 	button:SetText(label)
 	button:SetScript("OnClick", onClick)
-	local text = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
-	text:SetPoint("LEFT", button, "RIGHT", 10, 0)
+	local text = row:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+	text:SetPoint("TOPLEFT", button, "TOPRIGHT", 10, -4)
 	text:SetWidth(WIDTH - 190)
 	text:SetJustifyH("LEFT")
 	text:SetText(description)
-	return button
+	row:SetHeight(math.max(button:GetHeight(), text:GetStringHeight() + 4))
+	return row
 end
 
-local openButton = CreateAction(actionsHeader, L.OPT_OPEN, L.OPT_OPEN_DESC, function()
+local openAction = CreateAction(actionsHeader, L.OPT_OPEN, L.OPT_OPEN_DESC, function()
 	CloseSettings()
 	RunCommand("open")
 end)
-local clearButton = CreateAction(openButton, L.OPT_CLEAR, L.OPT_CLEAR_DESC, function()
+local clearAction = CreateAction(openAction, L.OPT_CLEAR, L.OPT_CLEAR_DESC, function()
 	StaticPopup_Show("ATTSEARCH_CLEAR_CACHE")
 end)
 
 -- Status: the same lines as /atts status, kept up to date while the page is open.
-local statusHeader = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
-statusHeader:SetPoint("TOPLEFT", clearButton, "BOTTOMLEFT", 0, -16)
+local statusHeader = content:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+statusHeader:SetPoint("TOPLEFT", clearAction, "BOTTOMLEFT", 0, -16)
 statusHeader:SetText(L.OPT_STATUS)
 
 -- One row per status line: a gold label, and the value next to it.
 local STATUS_LABEL_WIDTH = 150
 local statusRows = {}
 
-local footer = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+local footer = content:CreateFontString(nil, "ARTWORK", "GameFontDisable")
 footer:SetWidth(WIDTH)
 footer:SetJustifyH("LEFT")
 footer:SetText(L.OPT_FOOTER)
@@ -163,7 +200,7 @@ footer:SetText(L.OPT_FOOTER)
 local function StatusRow(i)
 	local row = statusRows[i]
 	if row then return row end
-	row = CreateFrame("Frame", nil, panel)
+	row = CreateFrame("Frame", nil, content)
 	row:SetSize(WIDTH, 1)
 	if i == 1 then
 		row:SetPoint("TOPLEFT", statusHeader, "BOTTOMLEFT", 0, -8)
@@ -194,6 +231,9 @@ local function RefreshStatus()
 		row.value:SetText(rows[i][2])
 		row:SetHeight(math.max(row.label:GetStringHeight(), row.value:GetStringHeight()))
 	end
+	-- Scroll range: from the top of the page to below the footer.
+	local top, bottom = content:GetTop(), footer:GetBottom()
+	if top and bottom then content:SetHeight(math.max(top - bottom + 16, 1)) end
 end
 
 function panel:Refresh()

@@ -7,7 +7,7 @@ local ATT, Util, Filters, L = ns.ATT, ns.Util, ns.Filters, ns.L
 local ResultsList = {}
 ns.ResultsList = ResultsList
 
-local ROW_HEIGHT = 32
+local ROW_HEIGHT = 36
 local MAX_ROWS = 10
 local QUESTION_MARK_ICON = 134400
 local CHECK = "|TInterface\\RaidFrame\\ReadyCheck-Ready:16:16|t"
@@ -105,11 +105,11 @@ local function CreateRow(list, i)
 	row:SetHighlightTexture("Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD")
 
 	row.icon = row:CreateTexture(nil, "ARTWORK")
-	row.icon:SetSize(24, 24)
+	row.icon:SetSize(28, 28)
 	row.icon:SetPoint("LEFT", 4, 0)
 
 	-- Check / cross / progress on the right; name and path end where it starts.
-	row.status = row:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+	row.status = row:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
 	row.status:SetPoint("RIGHT", row, "RIGHT", -6, 0)
 	row.status:SetJustifyH("RIGHT")
 
@@ -119,7 +119,7 @@ local function CreateRow(list, i)
 	row.name:SetJustifyH("LEFT")
 	row.name:SetWordWrap(false)
 
-	row.path = row:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+	row.path = row:CreateFontString(nil, "ARTWORK", "GameFontDisable")
 	row.path:SetPoint("BOTTOMLEFT", row.icon, "BOTTOMRIGHT", 6, -1)
 	row.path:SetPoint("RIGHT", row.status, "LEFT", -6, 0)
 	row.path:SetJustifyH("LEFT")
@@ -164,7 +164,7 @@ function Methods:Render(model)
 		end
 	end
 	self.footer:SetText(model.footer or "")
-	self.panel:SetHeight(10 + visible * ROW_HEIGHT + 20)
+	self.panel:SetHeight(10 + visible * ROW_HEIGHT + 24)
 	self.panel:Show()
 end
 
@@ -207,7 +207,7 @@ function ResultsList.Create(anchor, handlers)
 
 	for i = 1, MAX_ROWS do list.rows[i] = CreateRow(list, i) end
 
-	local footer = panel:CreateFontString(nil, "ARTWORK", "GameFontDisableSmall")
+	local footer = panel:CreateFontString(nil, "ARTWORK", "GameFontDisable")
 	footer:SetPoint("BOTTOMLEFT", panel, "BOTTOMLEFT", 8, 6)
 	footer:SetPoint("BOTTOMRIGHT", panel, "BOTTOMRIGHT", -8, 6)
 	footer:SetJustifyH("LEFT")

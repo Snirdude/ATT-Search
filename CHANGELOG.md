@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.2
+- The options page scrolls when it doesn't fit (a small settings window, or a long status), instead of running off the bottom. It uses the same thin scroll bar as the game's own settings, shown only when needed.
+- Bigger text: nothing is smaller than the game's normal text size anymore. That includes the options page descriptions, the result paths and checkmarks, and the footer under the results. Result rows are a little taller to fit.
+
 ## 1.2.1
 - Fixed the saved names starting over (on any character, or after a reload) once enough of them had loaded. The game can only load a saved file with up to about 262,000 different values in it, and a big cache went over that: the game skipped the file and the lookups began again from the start. Saved names are now packed into a few long strings, so the file stays far below the limit, and it's about half the size. Names saved by 1.2.0 that still load are kept.
 - Fixed items being indexed as whole item links instead of their names, so searches like "item" or a number no longer match every item, and an item name now ranks as a match from its first letter.
