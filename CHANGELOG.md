@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.3
+- Fixed the highlighted result jumping back to the top of the list while you moved through it with the arrow keys or Tab. While names are still loading, the results refresh every few seconds; the highlight now stays on the same result, in the same spot, instead of resetting.
+
 ## 1.2.2
 - The options page scrolls when it doesn't fit (a small settings window, or a long status), instead of running off the bottom. It uses the same thin scroll bar as the game's own settings, shown only when needed.
 - Bigger text: nothing is smaller than the game's normal text size anymore. That includes the options page descriptions, the result paths and checkmarks, and the footer under the results. Result rows are a little taller to fit.

@@ -87,7 +87,31 @@ end
 
 -- Searching ------------------------------------------------------------------
 
-local function RunSearch(text)
+local function FindResult(results, group)
+	for i = 1, #results do
+		if results[i].group == group then return i end
+	end
+end
+
+-- Puts the new results in the model. A new search starts at the top; a refresh (`keep`) stays
+-- on the selected result, at the same row of the list, so the player's place isn't lost.
+local function SetResults(results, total, keep)
+	local previous = keep and model.results[model.selected]
+	local previousRow = model.selected - model.offset
+	model.results, model.total = results, total
+	local n = #results
+	if not previous or n == 0 then
+		model.selected, model.offset = (n > 0) and 1 or 0, 0
+		return
+	end
+	-- It may have dropped out of the best results; then keep the same position instead.
+	local index = FindResult(results, previous.group) or math.min(model.selected, n)
+	model.selected = index
+	model.offset = math.min(math.max(0, n - ResultsList.MAX_ROWS), math.max(0, index - previousRow))
+end
+
+-- `refresh` is true for background re-searches of the same text (see Index:OnChanged below).
+local function RunSearch(text, refresh)
 	local root = ATT.GetRoot()
 	if not root then
 		ClearResults()
@@ -101,8 +125,7 @@ local function RunSearch(text)
 	model.query = text
 	Index:Search(text, function(results, total)
 		if text ~= model.query then return end
-		model.results, model.total = results, total
-		model.selected, model.offset = (#results > 0) and 1 or 0, 0
+		SetResults(results, total, refresh)
 		if model.wantOpen then Render() end
 	end)
 end
@@ -129,7 +152,7 @@ Index:OnChanged(function()
 	if model.query and not refreshTimer then
 		refreshTimer = C_Timer.NewTimer(REFRESH_SECONDS, function()
 			refreshTimer = nil
-			if model.query and list:IsShown() then RunSearch(model.query) end
+			if model.query and list:IsShown() then RunSearch(model.query, true) end
 		end)
 	end
 end)
