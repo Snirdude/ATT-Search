@@ -38,8 +38,10 @@ Unofficial companion for All The Things, made with the ATT author's blessing. No
 - **See what you have at a glance:** a green check when it's collected or completed, a red cross when it's not, and progress like 5/12 for zones, NPCs and vendors. Same data as ATT's own list.
 - **Know why something is hidden:** results your ATT settings hide are greyed out and name the exact filter, e.g. "Horde only (Race filter)" or "Already collected (Show Collected Things is off)". Results you can see in the list come first.
 - **Waypoints:** Shift+click a result to set a waypoint to it, using TomTom if you have it or the map pin otherwise. Works for NPCs, treasures, quest givers and anything else ATT has coordinates for.
+- **Every item searchable:** item names the game hasn't loaded yet fill in by themselves in the background (**Load all item names**, on by default).
+- **Gentle on your game:** ATT-Search gets out of the way of the game's own loading, your quest log and All The Things. It slows down when your frame rate drops and pauses in combat and during party sync.
+- **Options page** with every setting, a Clear Cache button and a live status: the cog at the end of the search bar, or Options > AddOns > ATT-Search.
 - **Move the ATT window** by dragging the search bar.
-- **Fast and smooth:** the index builds in the background after login without stutters, and is ready again moments after a /reload.
 - **Works on every game version ATT supports:** Retail, MoP Classic, Cata Classic, Wrath Classic, TBC Classic Anniversary, Classic Era and Forever.
 
 ### How to use
@@ -47,16 +49,24 @@ Unofficial companion for All The Things, made with the ATT author's blessing. No
 2. Type 3 or more letters.
 3. Arrow keys or Tab to move, **Enter** or click to show it in the list, **Shift+Enter** or Shift+click for a waypoint, **Esc** to close.
 
+### Options
+- **Load all item names** (on by default): makes every item searchable, even ones the game hasn't loaded yet.
+- **Load all quest names** (off by default): makes every quest searchable. The game loads quest data slowly, and your quest log, quest objectives and All The Things need it too, so this is off unless you want it. When on, it takes it slow and steps aside whenever the game or All The Things is loading quests. Even when it's off, quests from your quest log and the ones shown in All The Things become searchable as you see them.
+- **Load names in the background** (on by default): turn it off and search only finds names the game has already loaded.
+
 ### Commands
 - **/atts**: open the main list and focus the search bar
 - **/atts <text>**: search right away
-- **/atts warmup**: load item names the game hasn't loaded yet, slowly in the background
-- **/atts clearcache**: forget the saved names and rebuild the index
+- **/atts options**: open the options page
+- **/atts items on|off**, **/atts quests on|off**, **/atts lookups on|off**: the three options above
+- **/atts warmup**: turn on Load all item names
+- **/atts status**: what the background name loading is doing right now
+- **/atts clearcache**: forget the saved names and start over (your settings stay)
 - Key binding: Options > Keybindings > AddOns > ATT-Search
 
 ### Good to know
-- Indexing starts a few seconds after login; the bottom of the results shows its progress. Names are saved, so after a /reload the index is ready again in moments.
-- Names the game hasn't loaded yet fill in gradually in the background, paused in combat. Items appear once the game has loaded them, or use **/atts warmup**.
+- ATT-Search gets ready a few seconds after login; the bottom of the results shows its progress. Names are saved for all your characters, so after a /reload or relog it's ready again in moments.
+- Names the game hasn't loaded yet (NPCs, objects, items) fill in gradually. The game keeps them, so this mostly happens once.
 - A big ATT update may need an ATT-Search update too.
 ```
 ---
