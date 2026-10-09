@@ -56,6 +56,8 @@ Click the cog at the end of the search bar. Choose whether every item and quest 
 ### Good to know
 - ATT-Search is ready a few seconds after login, and the results show its progress. After that, a /reload or relog takes moments.
 - A big ATT update may need an ATT-Search update too.
+
+**Feedback and bug reports are welcome** in the comments.
 ```
 ---
 
