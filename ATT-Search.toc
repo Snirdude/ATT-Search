@@ -8,6 +8,7 @@
 ## SavedVariables: ATTSearchDB, ATTSearchSettings
 ## Category-enUS: Collections
 ## X-License: MIT
+## X-Curse-Project-ID: 1722931
 
 Locales.lua
 Util.lua
