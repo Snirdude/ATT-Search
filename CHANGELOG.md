@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.4
+- Fixed "not loaded yet" getting stuck at the same number with Load all item names on. Items the game has no data for (usually ones removed from the game) waited forever; they're now skipped, and `/atts status` shows how many. Items the server didn't answer are asked for again.
+- Background name loading now also pauses in boss fights, Mythic+ keys, PvP matches and other places where the game limits addons. NPC names loaded there came back unreadable and stayed missing from search until a reload.
+- NPCs whose names All The Things itself loaded in those places are searchable again once you leave.
+
 ## 1.2.3
 - Fixed the highlighted result jumping back to the top of the list while you moved through it with the arrow keys or Tab. While names are still loading, the results refresh every few seconds; the highlight now stays on the same result, in the same spot, instead of resetting.
 

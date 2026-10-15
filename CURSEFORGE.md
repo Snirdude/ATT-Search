@@ -39,7 +39,7 @@ Unofficial companion for All The Things, made with the ATT author's blessing. No
 - **Know why something is hidden:** results your ATT settings hide are greyed out and name the filter, e.g. "Horde only (Race filter)".
 - **Waypoints:** Shift+click a result for a waypoint, with TomTom or the map pin.
 - **Every item searchable,** even ones the game hasn't loaded yet.
-- **Gentle on your game:** it slows down when your frame rate drops and pauses in combat.
+- **Gentle on your game:** it slows down when your frame rate drops, and pauses in combat, boss fights and Mythic+.
 - **Move the ATT window** by dragging the search bar.
 - **Every game version ATT supports:** Retail, MoP Classic, Cata Classic, Wrath Classic, TBC Classic Anniversary, Classic Era and Forever.
 
@@ -54,7 +54,7 @@ Type **/atts** to open the list with the search bar ready, or **/atts <text>** t
 Click the cog at the end of the search bar. Choose whether every item and quest name is searchable from the start (items on by default; quests off, since the game loads quest data slowly), and see what ATT-Search is loading right now.
 
 ### Good to know
-- ATT-Search is ready a few seconds after login, and the results show its progress. After that, a /reload or relog takes moments.
+- Ready a few seconds after login (the results show its progress), and in moments after a /reload.
 - A big ATT update may need an ATT-Search update too.
 
 **Feedback and bug reports are welcome** in the comments.
@@ -65,11 +65,11 @@ Click the cog at the end of the search bar. Choose whether every item and quest 
 
 ## B. Upload File form
 
-**File:** `dist\ATT-Search-1.2.3.zip`
+**File:** `dist\ATT-Search-1.2.4.zip`
 
 **Display name**
 ```
-ATT-Search 1.2.3
+ATT-Search 1.2.4
 ```
 
 **Release type:** `Release`
@@ -85,6 +85,11 @@ ATT-Search 1.2.3
 
 **Changelog** (paste every section newer than the last version on CurseForge; this sheet last went up as 1.1.5)
 ```markdown
+1.2.4
+- Fixed "not loaded yet" getting stuck at the same number with Load all item names on. Items the game has no data for (usually ones removed from the game) waited forever; they're now skipped, and `/atts status` shows how many. Items the server didn't answer are asked for again.
+- Background name loading now also pauses in boss fights, Mythic+ keys, PvP matches and other places where the game limits addons. NPC names loaded there came back unreadable and stayed missing from search until a reload.
+- NPCs whose names All The Things itself loaded in those places are searchable again once you leave.
+
 1.2.3
 - Fixed the highlighted result jumping back to the top of the list while you moved through it with the arrow keys or Tab. While names are still loading, the results refresh every few seconds; the highlight now stays on the same result, in the same spot, instead of resetting.
 
