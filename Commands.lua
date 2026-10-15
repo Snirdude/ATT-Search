@@ -56,7 +56,7 @@ function Commands.StatusRows()
 		{ L.STATUS_INDEX, index },
 		{ L.STATUS_LOOKUPS, paused or L.STATUS_LOOKUPS_RUNNING:format(s.rate) },
 		{ L.STATUS_QUESTS, quests .. "\n" .. L.STATUS_QUESTS_COUNTS:format(N(s.questsWaiting), N(s.questsSent), N(s.questsNoData)) },
-		{ L.STATUS_OTHER, L.STATUS_OTHER_COUNTS:format(N(s.queued), N(s.waiting), N(s.pending)) },
+		{ L.STATUS_OTHER, L.STATUS_OTHER_COUNTS:format(N(s.queued), N(s.waiting), N(s.pending), N(s.itemsNoData)) },
 	}
 	if s.partySyncAPI then -- Retail only
 		rows[#rows + 1] = { L.STATUS_PARTY_SYNC, s.partySync and L.STATUS_PARTY_SYNC_ON or L.STATUS_PARTY_SYNC_OFF }

@@ -173,6 +173,19 @@ function ATT.IsNPCNameCached(npcID)
 	return type(cache) == "table" and rawget(cache, npcID) ~= nil
 end
 
+-- An NPC's readable name from ATT's name table, or nil. The name on the group itself can be
+-- stuck hidden: one read while the game restricts addons (12.0.5+) stays hidden there until a
+-- reload, while the table keeps only readable names. With `lookUp`, asks for a name that isn't
+-- known yet (that may query the server); otherwise only reads what's known.
+function ATT.GetNPCName(npcID, lookUp)
+	local app = App()
+	local cache = app and app.NPCNameFromID
+	if type(cache) ~= "table" then return nil end
+	local name
+	if lookUp then name = Get(cache, npcID) else name = rawget(cache, npcID) end
+	if type(name) == "string" and not IsSecret(name) then return name end
+end
+
 -- Whether ATT ships this quest's name in its own data (reading it then costs nothing).
 -- Every other quest name comes from the server.
 function ATT.HasShippedQuestName(questID)
