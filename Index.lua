@@ -26,6 +26,7 @@ local strlower, strfind, strsub, gsub, gmatch = string.lower, string.find, strin
 local tremove, sort, concat = table.remove, table.sort, table.concat
 local debugprofilestop, type, tostring, coroutine = debugprofilestop, type, tostring, coroutine
 local IsItemDataCachedByID = C_Item and C_Item.IsItemDataCachedByID
+local DoesItemExistByID = C_Item and C_Item.DoesItemExistByID
 local RequestLoadItemDataByID = C_Item and C_Item.RequestLoadItemDataByID
 local RequestLoadQuestByID = C_QuestLog and C_QuestLog.RequestLoadQuestByID
 
@@ -102,7 +103,7 @@ local function Entry(group, kind, id)
 	return { group = group, kind = kind, id = id, attempts = 0 }
 end
 
-local NoDataQuests, NoDataItems, ItemRefused -- defined with the saved names
+local NoDataQuests, NoDataItems, ItemRefused, GaveUp -- defined with the saved names
 
 -- Names ----------------------------------------------------------------------
 
@@ -134,6 +135,10 @@ local function Classify(group)
 		-- Without a free cache check, reading the name could query the server: throttle it.
 		if not IsItemDataCachedByID then return "other", "item:" .. itemID end
 		if IsItemDataCachedByID(itemID) then return nil end
+		-- Not in the game's item data (ATT lists some removed items): asking for it gets no
+		-- reply at all, which looks like a busy server and pauses every lookup. (The game's
+		-- own item code makes the same check before it asks.)
+		if DoesItemExistByID and not DoesItemExistByID(itemID) then return "skip" end
 		-- The server has no data for it.
 		if ItemRefused(itemID) or (NoDataItems()[itemID] or 0) >= NO_DATA_SESSIONS then return "skip" end
 		return "item", itemID
@@ -151,6 +156,7 @@ local function Classify(group)
 	elseif key == "npcID" or key == "creatureID" then
 		if type(id) ~= "number" or id <= 0 then return nil end -- negative ids are ATT headers
 		if ATT.IsNPCNameCached(id) then return nil end
+		if GaveUp("npc", id) then return "skip" end
 		return "npc", id
 	elseif key == "criteriaID" then
 		-- Without its own text, ATT names a criteria after a quest, NPC or item, and reading
@@ -162,7 +168,9 @@ local function Classify(group)
 		-- Without a name of its own, ATT names an object after an item or NPC.
 		if type(id) == "number" and ATT.HasShippedObjectName(id) then return nil end
 	end
-	return "other", key .. ":" .. tostring(id)
+	local otherID = key .. ":" .. tostring(id)
+	if GaveUp("other", otherID) then return "skip" end
+	return "other", otherID
 end
 
 -- Saved names ----------------------------------------------------------------
@@ -181,7 +189,8 @@ local CACHE_VERSION = 2
 local PACK_SIZE = 1000 -- names per saved string
 local nameCache        -- key -> name, unpacked once per session
 
--- Keys whose names are free again next session, so they aren't saved.
+-- Keys whose names are free again next session, so they aren't saved (unless the group comes
+-- with an item, see CacheKey).
 local NOT_SAVED = setmetatable({ criteriaID = true, objectID = true }, { __index = LOCAL_KEYS })
 
 -- ATTSearchDB, made current: a new language or an unknown version starts it over.
@@ -256,8 +265,12 @@ end)
 -- in. A quest refusal can also mean the server is throttling us, so an id is only skipped after
 -- NO_DATA_SESSIONS separate sessions refused it. A new game build starts the lists over, and an
 -- id that loads after all is taken off.
-local noData, noDataItems
-local refusedThisSession = {} -- "quest:id" / "item:id" -> true once counted in this session
+-- Items the server never answered count as refused too, and so do NPC and other names that
+-- never loaded (noDataNames, keyed "npc:id" / "other:key:id"). Without this they were asked
+-- for again every session, ahead of the names still to load, and each unanswered item paused
+-- all lookups for UNANSWERED_BACKOFF_SECONDS: a session could end before any new name loaded.
+local noData, noDataItems, noDataNames
+local refusedThisSession = {} -- "quest:id" / "item:id" / "npc:id"... -> true once counted in this session
 
 local function GameBuild()
 	local version, build = GetBuildInfo()
@@ -265,14 +278,15 @@ local function GameBuild()
 end
 
 local function NoDataLists()
-	if noData then return noData, noDataItems end
+	if noData then return noData, noDataItems, noDataNames end
 	local db, build = SavedDB(), GameBuild()
 	if type(db.noData) ~= "table" or db.noDataBuild ~= build then
-		db.noData, db.noDataItems, db.noDataBuild = {}, {}, build
+		db.noData, db.noDataItems, db.noDataNames, db.noDataBuild = {}, {}, {}, build
 	end
 	if type(db.noDataItems) ~= "table" then db.noDataItems = {} end
-	noData, noDataItems = db.noData, db.noDataItems
-	return noData, noDataItems
+	if type(db.noDataNames) ~= "table" then db.noDataNames = {} end
+	noData, noDataItems, noDataNames = db.noData, db.noDataItems, db.noDataNames
+	return noData, noDataItems, noDataNames
 end
 
 function NoDataQuests()
@@ -284,25 +298,41 @@ function NoDataItems()
 	return items
 end
 
--- Counts a refusal (once per session).
-local function RecordNoData(list, kind, id)
+local function NoDataNames()
+	local _, _, list = NoDataLists()
+	return list
+end
+
+-- Counts a refusal (once per session). The list is keyed by id, or with `byKey` by "kind:id".
+local function RecordNoData(list, kind, id, byKey)
 	local key = kind .. ":" .. tostring(id)
 	if refusedThisSession[key] then return end
 	refusedThisSession[key] = true
-	list[id] = (list[id] or 0) + 1
+	local slot = byKey and key or id
+	list[slot] = (list[slot] or 0) + 1
 end
 
--- Whether an item was refused this session (its data never loads).
+-- An NPC or other name that never loaded (counted once per session).
+local function RecordGaveUp(kind, id)
+	RecordNoData(NoDataNames(), kind, id, true)
+end
+
+-- Whether an item was refused, or never answered, this session (its data never loads).
 function ItemRefused(itemID)
 	return refusedThisSession["item:" .. tostring(itemID)] or false
 end
 
--- How many ids are skipped for having no server data. With `kind`, ids refused this session
--- count too.
-local function NoDataCount(list, kind)
+-- Whether an NPC or other name never loaded in NO_DATA_SESSIONS sessions of this game build.
+function GaveUp(kind, id)
+	return (NoDataNames()[kind .. ":" .. tostring(id)] or 0) >= NO_DATA_SESSIONS
+end
+
+-- How many ids are skipped for having no server data. With `prefix` (what turns a list key
+-- into a session key: "item:" for items, "" for noDataNames), ids refused this session count too.
+local function NoDataCount(list, prefix)
 	local count = 0
 	for id, sessions in pairs(list) do
-		if sessions >= NO_DATA_SESSIONS or (kind and refusedThisSession[kind .. ":" .. id]) then
+		if sessions >= NO_DATA_SESSIONS or (prefix and refusedThisSession[prefix .. id]) then
 			count = count + 1
 		end
 	end
@@ -311,7 +341,13 @@ end
 
 local function CacheKey(group)
 	local key, id = ATT.GetKey(group)
-	if key == nil or NOT_SAVED[key] or type(id) ~= "number" or id <= 0 then return nil end
+	if key == nil or type(id) ~= "number" or id <= 0 then return nil end
+	-- A free kind that comes with an item (recipes, mounts, pets, decor...) goes through the
+	-- item checks in Classify, so its name costs a lookup like an item's: save it too.
+	-- (Without this, those names loaded again every session.)
+	if NOT_SAVED[key] and not (LOCAL_KEYS[key] and (ATT.GetID(group, "itemID") or 0) > 0) then
+		return nil
+	end
 	return key .. ":" .. id
 end
 
@@ -553,6 +589,7 @@ end
 -- old "no name" for the quest until then).
 
 local arrived, arrivalTimer = {}, nil
+local SchedulePendingRetry -- defined below
 
 local function DropWaiting(questID)
 	if questWaiting[questID] then
@@ -571,15 +608,20 @@ local function IndexArrived()
 		DropWaiting(ids[i])
 		if waiting then
 			for j = 1, #waiting do
-				local name = ResolveName(waiting[j])
+				local name, retry = ResolveName(waiting[j])
 				if name then
 					Add(waiting[j], name)
 					anyAdded = true
+				elseif retry then
+					-- ATT hasn't picked up the name yet: read it again later instead of asking
+					-- the server for it again next session.
+					pending[#pending + 1] = Entry(waiting[j], "local")
 				end
 			end
 		end
 	end
 	if anyAdded then NotifySoon() end
+	SchedulePendingRetry()
 end
 
 local function OnQuestLoaded(questID)
@@ -699,6 +741,7 @@ replies:SetScript("OnEvent", function(_, event, id, success)
 		if noDataItems then
 			if success then
 				noDataItems[id] = nil
+				refusedThisSession["item:" .. tostring(id)] = nil -- a late reply after giving up
 			else
 				RecordNoData(noDataItems, "item", id)
 			end
@@ -747,8 +790,6 @@ for _, event in ipairs({ "QUEST_DATA_LOAD_RESULT", "ITEM_DATA_LOAD_RESULT",
 	pcall(replies.RegisterEvent, replies, event)
 end
 
-local SchedulePendingRetry -- defined below
-
 -- Handles one queued entry. Returns tokens used (0 or 1) and whether a name was added.
 local function ProcessRemote(entry)
 	local group, kind, id = entry.group, entry.kind, entry.id
@@ -778,7 +819,11 @@ local function ProcessRemote(entry)
 			return 0, false
 		end
 		local tries = itemTries[id] or 0
-		if tries >= MAX_REMOTE_ATTEMPTS then return 0, false end -- never answered: give up
+		if tries >= MAX_REMOTE_ATTEMPTS then
+			-- Never answered: give up, and count it like a refusal so later sessions stop asking.
+			RecordNoData(NoDataItems(), "item", id)
+			return 0, false
+		end
 		itemTries[id] = tries + 1
 		MarkInFlight(kind, id)
 		RequestLoadItemDataByID(id)
@@ -797,7 +842,11 @@ local function ProcessRemote(entry)
 	if name then Add(group, name) return 0, true end
 	entry.attempts = entry.attempts + 1
 	MarkInFlight(kind, id)
-	if retry then pending[#pending + 1] = entry end
+	if retry then
+		pending[#pending + 1] = entry
+	else
+		RecordGaveUp(kind, id) -- it has no usable name
+	end
 	return 1, false
 end
 
@@ -876,7 +925,9 @@ function SchedulePendingRetry()
 						if entry.attempts < MAX_REMOTE_ATTEMPTS then
 							remote[#remote + 1] = entry
 							requeued = true
-						end -- else give up: the name never loaded
+						else -- give up: the name never loaded
+							RecordGaveUp(entry.kind, entry.id)
+						end
 					elseif entry.kind == "item" and Options.Get("loadItems") then
 						-- Still not loaded: asks again, unless it's waiting for a reply or
 						-- was asked for too often already (see ProcessRemote).
@@ -1020,7 +1071,7 @@ function Index:ClearCache()
 	Options.Get("lookups") -- moves an old "lookups off" out of ATTSearchDB first
 	ATTSearchDB = nil
 	nameCache = nil
-	noData, noDataItems = nil, nil
+	noData, noDataItems, noDataNames = nil, nil, nil
 end
 
 -- A snapshot of the background lookups, for /atts status.
@@ -1054,7 +1105,7 @@ function Index:GetStatus()
 		questBackoffSeconds = math.max(0, math.ceil(questBackoff)),
 		questsWaiting = questWaitingCount,
 		questsNoData = NoDataCount(NoDataQuests()),
-		itemsNoData = NoDataCount(NoDataItems(), "item"),
+		otherNoData = NoDataCount(NoDataItems(), "item:") + NoDataCount(NoDataNames(), ""),
 		questsSent = stats.questsSent,
 		refused = stats.refused,
 		refusedOurs = stats.refusedOurs,
