@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.5
+- Fixed "Loading ... more names in the background" starting over at every login. Recipe, mount, pet, housing decor and other item names loaded while you played but weren't kept, so they loaded again every session and the number never went down. Names now stay loaded across logins and /reloads; only new things (after a game patch or an All The Things update) load again.
+- Fixed background name loading stalling on items that no longer exist in the game. They held up every other name, often for a whole session.
+- Names that never load (items the server doesn't answer, some NPCs) are now skipped until the next game patch, like quests that can't be loaded, instead of being tried again at every login. `/atts status` counts them with the other skipped names.
+
 ## 1.2.4
 - Fixed "not loaded yet" getting stuck at the same number with Load all item names on. Items the game has no data for (usually ones removed from the game) waited forever; they're now skipped, and `/atts status` shows how many. Items the server didn't answer are asked for again.
 - Background name loading now also pauses in boss fights, Mythic+ keys, PvP matches and other places where the game limits addons. NPC names loaded there came back unreadable and stayed missing from search until a reload.

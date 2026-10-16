@@ -2,7 +2,7 @@
 ## Title: ATT-Search
 ## Notes: Unofficial companion for All The Things: adds a search bar to the main list. Type a name, pick a result, and the list expands and scrolls to it.
 ## Author: Archdude
-## Version: 1.2.4
+## Version: 1.2.5
 ## IconTexture: Interface\Icons\INV_Misc_Spyglass_03
 ## Dependencies: AllTheThings
 ## SavedVariables: ATTSearchDB, ATTSearchSettings
