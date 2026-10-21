@@ -5,7 +5,7 @@
 ## Version: 1.2.5
 ## IconTexture: Interface\Icons\INV_Misc_Spyglass_03
 ## Dependencies: AllTheThings
-## SavedVariables: ATTSearchDB, ATTSearchSettings
+## SavedVariables: ATTSearchDB, ATTSearchSettings, ATTSearchWhatsNew
 ## Category-enUS: Collections
 ## X-License: MIT
 ## X-Curse-Project-ID: 1722931
@@ -20,3 +20,5 @@ Navigator.lua
 ResultsList.lua
 SearchBar.lua
 Commands.lua
+WhatsNew.lua
+WhatsNewData.lua
