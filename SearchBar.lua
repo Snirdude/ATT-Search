@@ -170,7 +170,7 @@ local function Open(index)
 	if ok then return end
 	if reason == "filtered" then
 		local why = result.hiddenReason or Filters.HiddenReason(result.group, Index:GetRoot()) or L.REASON_FILTERS
-		Util.Print(L.HIDDEN_CHAT:format(Util.DisplayText(ATT.GetText(result.group)), why))
+		Util.Print(L.HIDDEN_CHAT:format(ResultsList.DisplayName(result), why))
 	elseif reason == "stale" then
 		Util.Print(L.LIST_REBUILT)
 		Index:Reset()

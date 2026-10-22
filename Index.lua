@@ -1131,7 +1131,8 @@ local function Score(name, query, at)
 end
 
 -- Searches the current index. Calls onDone(results, totalMatches) when finished, where each
--- result is { group, score, hidden, ... }. Starting a new search cancels the previous one.
+-- result is { group, name (lowercase), score, hidden, ... }. Starting a new search cancels
+-- the previous one.
 function Index:Search(query, onDone)
 	CancelJob("search")
 	query = strlower(Util.Trim(query or ""))
@@ -1144,7 +1145,7 @@ function Index:Search(query, onDone)
 			if at then
 				total = total + 1
 				if #results < MAX_COLLECT then
-					results[#results + 1] = { group = groups[i], score = Score(name, query, at), len = #name, order = i }
+					results[#results + 1] = { group = groups[i], name = name, score = Score(name, query, at), len = #name, order = i }
 				end
 			end
 			if i % 1000 == 0 then Checkpoint() end

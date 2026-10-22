@@ -7,6 +7,8 @@ local ATT, Util, Filters, L = ns.ATT, ns.Util, ns.Filters, ns.L
 local ResultsList = {}
 ns.ResultsList = ResultsList
 
+local gsub, strsub, strupper = string.gsub, string.sub, string.upper
+
 local ROW_HEIGHT = 36
 local MAX_ROWS = 10
 local QUESTION_MARK_ICON = 134400
@@ -38,6 +40,22 @@ local function Status(group)
 	return "", nil
 end
 
+-- The result's name, with ATT's colors. ATT's own text can be unreadable: hidden by the game
+-- (read while it restricted addons, until a reload) or not loaded yet. Then the name comes
+-- from ATT's NPC name table, else from the name the search matched (saved lowercase, so each
+-- word gets its capital back).
+function ResultsList.DisplayName(result)
+	local group = result.group
+	local text = ATT.GetText(group)
+	if not Util.IsSecret(text) and not ATT.IsRetrieving(text) then return Util.DisplayText(text) end
+	local key, id = ATT.GetKey(group)
+	local name = (key == "npcID" or key == "creatureID") and type(id) == "number" and ATT.GetNPCName(id)
+	if name then return name end
+	if result.name then return (strsub(gsub(" " .. result.name, "%s%l", strupper), 2)) end
+	return UNKNOWN
+end
+local DisplayName = ResultsList.DisplayName
+
 -- The group's own id (e.g. NPC ID), then Item ID and Spell ID when it has them too.
 local function AddIDLines(tooltip, group)
 	local shown = {}
@@ -55,7 +73,7 @@ end
 local function ShowTooltip(row, result)
 	local group = result.group
 	GameTooltip:SetOwner(row, "ANCHOR_RIGHT")
-	GameTooltip:AddLine(Util.DisplayText(ATT.GetText(group)))
+	GameTooltip:AddLine(DisplayName(result))
 	if result.path ~= "" then GameTooltip:AddLine(result.path, 0.7, 0.7, 0.7, true) end
 	local statusText, statusLine = Status(group)
 	if statusLine then
@@ -82,11 +100,11 @@ local function FillRow(row, result)
 	row.icon:SetDesaturated(hidden)
 	row.icon:SetAlpha(hidden and 0.6 or 1)
 	if hidden then
-		row.name:SetText("|cff808080" .. (Util.CleanText(ATT.GetText(group)) or UNKNOWN) .. "|r")
+		row.name:SetText("|cff808080" .. (Util.CleanText(DisplayName(result)) or UNKNOWN) .. "|r")
 		local reason = "|cffff8040" .. L.HIDDEN_ROW:format(result.hiddenReason) .. "|r"
 		row.path:SetText(result.path ~= "" and (reason .. "  " .. result.path) or reason)
 	else
-		row.name:SetText(Util.DisplayText(ATT.GetText(group)))
+		row.name:SetText(DisplayName(result))
 		row.path:SetText(result.path ~= "" and result.path or " ")
 	end
 end
