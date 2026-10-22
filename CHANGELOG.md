@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.6
+- Fixed results showing "Unknown" instead of an NPC's name, for example Delve vendors. It happened when All The Things couldn't show the name at that moment: after the game had hidden it from addons, or before it had loaded. Results, their tooltips and the chat message for hidden results now show the name.
+- After an update, a What's New window shows what changed since the version you had.
+
 ## 1.2.5
 - Fixed "Loading ... more names in the background" starting over at every login. Recipe, mount, pet, housing decor and other item names loaded while you played but weren't kept, so they loaded again every session and the number never went down. Names now stay loaded across logins and /reloads; only new things (after a game patch or an All The Things update) load again.
 - Fixed background name loading stalling on items that no longer exist in the game. They held up every other name, often for a whole session.
