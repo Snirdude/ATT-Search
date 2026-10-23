@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0
+- Search by ID: type a number to find every item, quest, NPC, achievement, spell and more whose ID starts with it, the exact ID first. It finds things whose names haven't loaded yet, too.
+- Put a kind in front to narrow it down: `item 19019`, `quest:1234`, `npc 5`, `ach 6` (also spell, mount, pet, toy, recipe, currency, faction, title, map, instance, encounter, object, criteria, decor and illusion).
+- ID searches work with just one or two digits, and each result shows the ID it matched.
+
 ## 1.2.6
 - Fixed results showing "Unknown" instead of an NPC's name, for example Delve vendors. It happened when All The Things couldn't show the name at that moment: after the game had hidden it from addons, or before it had loaded. Results, their tooltips and the chat message for hidden results now show the name.
 - After an update, a What's New window shows what changed since the version you had.

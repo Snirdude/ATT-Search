@@ -2,10 +2,15 @@
 ArchdudeWhatsNew:Register("ATT-Search", {
 	title = "ATT-Search",
 	icon = "Interface\\Icons\\INV_Misc_Spyglass_03",
-	version = "1.2.6",
+	version = "1.3.0",
 	seen = "ATTSearchWhatsNew",
 	saved = { "ATTSearchDB", "ATTSearchSettings" },
 	changes = {
+		{ "1.3.0",
+			"Search by ID: type a number to find every item, quest, NPC, achievement, spell and more whose ID starts with it, the exact ID first. It finds things whose names haven't loaded yet, too.",
+			"Put a kind in front to narrow it down: |cffffd100item 19019|r, |cffffd100quest:1234|r, |cffffd100npc 5|r, |cffffd100ach 6|r (also spell, mount, pet, toy, recipe, currency, faction, title, map, instance, encounter, object, criteria, decor and illusion).",
+			"ID searches work with just one or two digits, and each result shows the ID it matched.",
+		},
 		{ "1.2.6",
 			"Fixed results showing \"Unknown\" instead of an NPC's name, for example Delve vendors. It happened when All The Things couldn't show the name at that moment: after the game had hidden it from addons, or before it had loaded. Results, their tooltips and the chat message for hidden results now show the name.",
 			"After an update, a What's New window shows what changed since the version you had.",
@@ -55,10 +60,6 @@ ArchdudeWhatsNew:Register("ATT-Search", {
 		{ "1.1.6",
 			"Fixed a long freeze, and ATT's list staying on \"Retrieving data\", on a fresh game cache (new install, cleared Cache folder or a new patch). Background name loading now starts later and slower, and only speeds up while your frame rate is healthy.",
 			"The rows you're looking at in ATT's list no longer wait behind ATT-Search's background loading.",
-		},
-		{ "1.1.5",
-			"Behind-the-scenes cleanup, no new features: big All The Things updates are quicker to support, and all text is ready for translation.",
-			"Saved names no longer keep piling up across patches.",
 		},
 	},
 })
