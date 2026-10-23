@@ -10,6 +10,7 @@ Copy the `ATT-Search` folder to `World of Warcraft\_retail_\Interface\AddOns\` a
 ## Use
 - Open the ATT main list. The search bar sits on its top edge.
 - Type 3+ letters. Use the arrow keys or Tab to move through results, Enter or click to open one, and Esc to close.
+- Or type an ID: `19019` finds every item, quest, NPC, achievement, spell and so on whose ID starts with those digits, the exact ID first, even if its name hasn't loaded yet. Put a kind in front to narrow it: `item 19019`, `quest:1234`, `npc 5`, `ach 6` (also spell, mount, pet, toy, recipe, currency, faction, title, map, instance, encounter, object, criteria, decor, illusion). Each result shows the ID it matched.
 - Shift+click a result (or Shift+Enter) to set a waypoint to it: TomTom if installed, otherwise the map pin.
 - `/atts` opens the main list and focuses the search bar.
 - `/atts <text>` searches right away.

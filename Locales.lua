@@ -12,7 +12,7 @@ local L = setmetatable({}, { __index = function(_, key) return key end })
 ns.L = L
 
 -- Search bar and key binding
-L.SEARCH_PLACEHOLDER = "Search All The Things..."
+L.SEARCH_PLACEHOLDER = "Search All The Things by name or ID..."
 L.OPTIONS_BUTTON = "ATT-Search options"
 L.BINDING_HEADER = "ATT-Search"
 L.BINDING_FOCUS = "Focus the search bar"
@@ -50,6 +50,20 @@ L.ID_LABELS = {
 	mountID = "Mount ID", toyID = "Toy ID", currencyID = "Currency ID", factionID = "Faction ID",
 	titleID = "Title ID", recipeID = "Recipe ID", illusionID = "Illusion ID", decorID = "Decor ID",
 	flightpathID = "Flight Path ID", explorationID = "Exploration ID", followerID = "Follower ID",
+	classID = "Class ID", raceID = "Race ID", professionID = "Profession ID", eventID = "Event ID",
+}
+
+-- Words that narrow an ID search to one kind ("item 19019", "quest:1234"), by ATT field name.
+-- Lowercase. "itemid", "item id" and the like work too.
+L.ID_KINDS = {
+	item = "itemID", quest = "questID", npc = "npcID", creature = "npcID",
+	achievement = "achievementID", ach = "achievementID", criteria = "criteriaID",
+	spell = "spellID", map = "mapID", zone = "mapID", instance = "instanceID",
+	encounter = "encounterID", object = "objectID", source = "sourceID", appearance = "sourceID",
+	pet = "speciesID", species = "speciesID", mount = "mountID", toy = "toyID",
+	currency = "currencyID", faction = "factionID", title = "titleID", recipe = "recipeID",
+	illusion = "illusionID", decor = "decorID", flightpath = "flightpathID",
+	exploration = "explorationID", follower = "followerID",
 }
 
 -- Why a result is hidden in the main list
@@ -87,7 +101,7 @@ L.CACHE_CLEARED = "Saved names cleared. Rebuilding the index in the background."
 
 -- /atts help
 L.HELP_OPEN = "/atts - open the main list and focus the search bar"
-L.HELP_SEARCH = "/atts <text> - search right away"
+L.HELP_SEARCH = "/atts <text> - search right away (a name, an ID, or a kind and an ID like \"item 19019\")"
 L.HELP_ITEMS = "/atts items on|off - load the names of items the game hasn't cached yet (on by default)"
 L.HELP_CLEARCACHE = "/atts clearcache - forget the saved names and rebuild the index"
 L.HELP_QUESTS = "/atts quests on|off - also load quest names from the server, so every quest is searchable (off by default)"

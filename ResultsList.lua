@@ -40,6 +40,12 @@ local function Status(group)
 	return "", nil
 end
 
+-- The ID an ID search matched ("Item ID 19019"), or nil.
+local function MatchedID(result)
+	if not result.idField then return nil end
+	return (L.ID_LABELS[result.idField] or result.idField) .. " " .. result.id
+end
+
 -- The result's name, with ATT's colors. ATT's own text can be unreadable: hidden by the game
 -- (read while it restricted addons, until a reload) or not loaded yet. Then the name comes
 -- from ATT's NPC name table, else from the name the search matched (saved lowercase, so each
@@ -52,7 +58,8 @@ function ResultsList.DisplayName(result)
 	local name = (key == "npcID" or key == "creatureID") and type(id) == "number" and ATT.GetNPCName(id)
 	if name then return name end
 	if result.name then return (strsub(gsub(" " .. result.name, "%s%l", strupper), 2)) end
-	return UNKNOWN
+	-- An ID match can be a thing whose name hasn't loaded yet.
+	return MatchedID(result) or UNKNOWN
 end
 local DisplayName = ResultsList.DisplayName
 
@@ -89,7 +96,8 @@ local function ShowTooltip(row, result)
 	GameTooltip:Show()
 end
 
--- Fills one row. Results that the main list hides are greyed out with the reason first.
+-- Fills one row. Results that the main list hides are greyed out with the reason first; ID
+-- matches show the matched ID before the path.
 local function FillRow(row, result)
 	local group = result.group
 	row.status:SetText((Status(group)))
@@ -99,14 +107,17 @@ local function FillRow(row, result)
 	local hidden = result.hiddenReason ~= nil
 	row.icon:SetDesaturated(hidden)
 	row.icon:SetAlpha(hidden and 0.6 or 1)
+	local details = {}
 	if hidden then
 		row.name:SetText("|cff808080" .. (Util.CleanText(DisplayName(result)) or UNKNOWN) .. "|r")
-		local reason = "|cffff8040" .. L.HIDDEN_ROW:format(result.hiddenReason) .. "|r"
-		row.path:SetText(result.path ~= "" and (reason .. "  " .. result.path) or reason)
+		details[#details + 1] = "|cffff8040" .. L.HIDDEN_ROW:format(result.hiddenReason) .. "|r"
 	else
 		row.name:SetText(DisplayName(result))
-		row.path:SetText(result.path ~= "" and result.path or " ")
 	end
+	local matched = MatchedID(result)
+	if matched then details[#details + 1] = "|cffffffff" .. matched .. "|r" end
+	if result.path ~= "" then details[#details + 1] = result.path end
+	row.path:SetText(#details > 0 and table.concat(details, "  ") or " ")
 end
 
 local function CreateRow(list, i)

@@ -17,12 +17,13 @@
 --    All server lookups pause in combat, while the game restricts addons, and during party sync.
 -- Names that cost something are also saved between sessions (see "Saved names").
 local _, ns = ...
-local ATT, Util, Options = ns.ATT, ns.Util, ns.Options
+local ATT, Util, Options, L = ns.ATT, ns.Util, ns.Options, ns.L
 
 local Index = {}
 ns.Index = Index
 
-local strlower, strfind, strsub, gsub, gmatch = string.lower, string.find, string.sub, string.gsub, string.gmatch
+local strlower, strfind, strsub, strmatch, gsub, gmatch =
+	string.lower, string.find, string.sub, string.match, string.gsub, string.gmatch
 local tremove, sort, concat = table.remove, table.sort, table.concat
 local debugprofilestop, type, tostring, coroutine = debugprofilestop, type, tostring, coroutine
 local IsItemDataCachedByID = C_Item and C_Item.IsItemDataCachedByID
@@ -58,6 +59,8 @@ local REMOTE_TICK_BUDGET_MS = 3    -- time per tick for lookups (cache hits are 
 local MAX_REMOTE_ATTEMPTS = 2
 local MAX_COLLECT = 3000           -- matches collected before sorting (keeps very common queries cheap)
 local MAX_RESULTS = 200            -- matches kept after sorting
+local MIN_NAME_CHARS = 3           -- shorter queries only search IDs
+local MAX_ID_DIGITS = 10           -- longest ID an ID search looks for
 local PENDING_RETRY_SECONDS = 60
 local NOTIFY_THROTTLE = 2
 
@@ -74,10 +77,21 @@ local LOCAL_KEYS = {
 	garrisonbuildingID = true, garrisonmissionID = true, autoID = true, achievementCategoryID = true,
 }
 
+-- Keys that are ATT's own list structure, not game IDs, so an ID search skips them (every
+-- dungeon has a "14", Normal difficulty, for example).
+local NOT_SEARCHABLE_KEYS = {
+	headerID = true, difficultyID = true, filterID = true, autoID = true, tierID = true, expansionID = true,
+}
+-- Keys ATT spells two ways, searched as one.
+local SAME_KEY = { creatureID = "npcID", flightPathID = "flightpathID" }
+
 -- State (private; other files use the methods below)
 local root               -- ATT root group being indexed
 local state = "idle"     -- "idle" | "building" | "ready"
 local names, groups = {}, {} -- names[i] (lowercase) belongs to groups[i]
+-- Every searchable ID in the tree: idNums[i] is idGroups[i]'s idFields[i] ("questID"). A
+-- group's IDs sit next to each other. Named or not, every group is here.
+local idNums, idGroups, idFields = {}, {}, {}
 local pending = {}       -- entries waiting for the client cache; checked without server queries
 local remote, remoteHead = {}, 1 -- entries waiting for a throttled lookup (a queue)
 local requested = {}     -- "kind:id" already asked for, so each id is requested once
@@ -425,6 +439,24 @@ local function AddEntry(group, name)
 	local n = #names + 1
 	names[n] = name
 	groups[n] = group
+end
+
+local function AddID(group, field, id)
+	local n = #idNums + 1
+	idNums[n], idGroups[n], idFields[n] = id, group, field
+end
+
+-- Records the IDs a group can be searched by, the same ones its tooltip shows: its own (NPC ID,
+-- Quest ID...), then its Item ID and Spell ID. Reading these never asks the server.
+local function RecordIDs(group)
+	local key, id = ATT.GetKey(group)
+	if key and not NOT_SEARCHABLE_KEYS[key] and type(id) == "number" and id > 0 then
+		AddID(group, SAME_KEY[key] or key, id)
+	end
+	local itemID = ATT.GetID(group, "itemID")
+	if itemID and itemID > 0 and key ~= "itemID" then AddID(group, "itemID", itemID) end
+	local spellID = ATT.GetID(group, "spellID")
+	if spellID and spellID > 0 and key ~= "spellID" then AddID(group, "spellID", spellID) end
 end
 
 -- Adds a freshly looked-up name and saves it for the next session.
@@ -956,6 +988,7 @@ function Index:Reset()
 	StopQuestLane()
 	root, state = nil, "idle"
 	names, groups, pending, remote, remoteHead, requested, itemTries = {}, {}, {}, {}, 1, {}, {}
+	idNums, idGroups, idFields = {}, {}, {}
 	inFlight, inFlightCount = {}, 0
 	questWaiting, questWaitingCount, questQueue, questHead, questQueueLast = {}, 0, {}, 1, {}
 	arrived = {}
@@ -979,6 +1012,7 @@ function Index:Ensure(newRoot)
 			stack[top] = nil
 			top = top - 1
 			if group ~= root then
+				RecordIDs(group)
 				local cacheKey = CacheKey(group)
 				if cacheKey then seen[cacheKey] = true end
 				local cached = cacheKey and cache[cacheKey]
@@ -1130,36 +1164,149 @@ local function Score(name, query, at)
 	return 3
 end
 
+-- Marks results the main list hides, so they sort after the shown ones.
+local function MarkHidden(results)
+	for i = 1, #results do
+		results[i].hidden = not ns.Filters.IsShownInList(results[i].group, root)
+		if i % 50 == 0 then Checkpoint() end
+	end
+end
+
+-- Name matches, best first. Returns up to MAX_RESULTS of them and the number of matches.
+-- Runs inside the search job.
+local function SearchNames(query)
+	local results, total = {}, 0
+	for i = 1, #names do
+		local name = names[i]
+		local at = strfind(name, query, 1, true)
+		if at then
+			total = total + 1
+			if #results < MAX_COLLECT then
+				results[#results + 1] = { group = groups[i], name = name, score = Score(name, query, at), len = #name, order = i }
+			end
+		end
+		if i % 1000 == 0 then Checkpoint() end
+	end
+	MarkHidden(results)
+	sort(results, CompareResults)
+	for i = #results, MAX_RESULTS + 1, -1 do tremove(results, i) end
+	return results, total
+end
+
+-- ID searches ----------------------------------------------------------------
+-- Digits ("19019"), optionally after a kind word ("item 19019", "quest:1234", "npc id 5"),
+-- find every ID that starts with them: the exact ID first, then one digit longer, and so on.
+
+-- The digits and the field to search (nil for every kind), or nil when the query isn't an ID
+-- search.
+local function ParseIDQuery(query)
+	local digits = strmatch(query, "^#?(%d+)$")
+	if digits then return digits end
+	local word
+	word, digits = strmatch(query, "^(%a+)%s*[:#=]?%s*#?(%d+)$")
+	if not word then word, digits = strmatch(query, "^(%a+)%s+id%s*[:#=]?%s*#?(%d+)$") end
+	if not word then return nil end
+	if word == "id" then return digits end
+	local field = L.ID_KINDS[word] or (strsub(word, -2) == "id" and L.ID_KINDS[strsub(word, 1, -3)])
+	if field then return digits, field end
+end
+
+-- Whether text is an ID search (those may be shorter than a name search).
+function Index.IsIDQuery(text)
+	return ParseIDQuery(strlower(Util.Trim(text or ""))) ~= nil
+end
+
+local function CompareIDResults(a, b)
+	if a.hidden ~= b.hidden then return not a.hidden end
+	if a.id ~= b.id then return a.id < b.id end
+	return a.order < b.order
+end
+
+-- ID matches, closest first. Returns up to MAX_RESULTS of them and the number of matches.
+-- Runs inside the search job.
+local function SearchIDs(digits, field)
+	-- IDs starting with the digits, by extra digits: lo[1]..hi[1] is the exact ID, lo[2]..hi[2]
+	-- the ten IDs one digit longer, and so on. The ranges don't overlap and only grow.
+	local lo, hi = {}, {}
+	if strsub(digits, 1, 1) ~= "0" and #digits <= MAX_ID_DIGITS then
+		local base, size = tonumber(digits), 1
+		for extra = 1, MAX_ID_DIGITS - #digits + 1 do
+			lo[extra], hi[extra] = base * size, base * size + size - 1
+			size = size * 10
+		end
+	end
+	local first, ranges = lo[1] or math.huge, #lo
+	local buckets, total, lastGroup = {}, 0, nil
+	for i = 1, #idNums do
+		local id = idNums[i]
+		if id >= first and (not field or idFields[i] == field) then
+			for extra = 1, ranges do
+				if id < lo[extra] then break end
+				if id <= hi[extra] then
+					local group = idGroups[i]
+					-- A group whose IDs both match (a recipe's Recipe ID and Spell ID) counts once.
+					if group ~= lastGroup then
+						lastGroup = group
+						total = total + 1
+						local bucket = buckets[extra]
+						if not bucket then
+							bucket = {}
+							buckets[extra] = bucket
+						end
+						if #bucket < MAX_COLLECT then
+							bucket[#bucket + 1] = { group = group, idField = idFields[i], id = id, order = i }
+						end
+					end
+					break
+				end
+			end
+		end
+		if i % 2000 == 0 then Checkpoint() end
+	end
+	-- Closest IDs first; only the buckets that make it into the results get sorted.
+	local results = {}
+	for extra = 1, ranges do
+		local bucket = buckets[extra]
+		if bucket then
+			MarkHidden(bucket)
+			sort(bucket, CompareIDResults)
+			for i = 1, #bucket do
+				if #results >= MAX_RESULTS then break end
+				results[#results + 1] = bucket[i]
+			end
+			if #results >= MAX_RESULTS then break end
+		end
+	end
+	return results, total
+end
+
 -- Searches the current index. Calls onDone(results, totalMatches) when finished, where each
--- result is { group, name (lowercase), score, hidden, ... }. Starting a new search cancels
--- the previous one.
+-- result is { group, name (lowercase, name matches), idField and id (ID matches), hidden, ... }.
+-- ID matches come before name matches. Starting a new search cancels the previous one.
 function Index:Search(query, onDone)
 	CancelJob("search")
 	query = strlower(Util.Trim(query or ""))
-	if query == "" then onDone({}, 0) return end
+	local digits, field = ParseIDQuery(query)
+	local searchNames = #query >= MIN_NAME_CHARS
+	if not digits and not searchNames then onDone({}, 0) return end
 	StartJob("search", function()
 		local results, total = {}, 0
-		for i = 1, #names do
-			local name = names[i]
-			local at = strfind(name, query, 1, true)
-			if at then
-				total = total + 1
-				if #results < MAX_COLLECT then
-					results[#results + 1] = { group = groups[i], name = name, score = Score(name, query, at), len = #name, order = i }
-				end
+		if digits then results, total = SearchIDs(digits, field) end
+		if searchNames then
+			local named, namedTotal = SearchNames(query)
+			local byID = {}
+			for i = 1, #results do byID[results[i].group] = true end
+			for i = 1, #named do
+				if #results >= MAX_RESULTS then break end
+				if not byID[named[i].group] then results[#results + 1] = named[i] end
 			end
-			if i % 1000 == 0 then Checkpoint() end
+			total = total + namedTotal
 		end
-		-- Mark results the main list hides, so they sort after the shown ones.
-		for i = 1, #results do
-			results[i].hidden = not ns.Filters.IsShownInList(results[i].group, root)
-			if i % 50 == 0 then Checkpoint() end
-		end
-		sort(results, CompareResults)
-		for i = #results, MAX_RESULTS + 1, -1 do tremove(results, i) end
 		onDone(results, total)
 	end)
 end
+
+Index.MIN_NAME_CHARS = MIN_NAME_CHARS
 
 function Index:CancelSearch()
 	CancelJob("search")

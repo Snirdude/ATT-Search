@@ -9,7 +9,6 @@ local SearchBar = {}
 ns.SearchBar = SearchBar
 
 local BAR_HEIGHT = 30
-local MIN_CHARS = 3
 local DEBOUNCE_SECONDS = 0.15
 local REFRESH_SECONDS = 0.5
 local SCROLL_STEP = 3
@@ -133,7 +132,7 @@ end
 local function QueueSearch()
 	if debounceTimer then debounceTimer:Cancel() debounceTimer = nil end
 	local text = box:GetText() or ""
-	if #text < MIN_CHARS then
+	if #text < Index.MIN_NAME_CHARS and not Index.IsIDQuery(text) then
 		ClearResults()
 		HideResults()
 		return
