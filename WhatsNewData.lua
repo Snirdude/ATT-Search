@@ -2,10 +2,13 @@
 ArchdudeWhatsNew:Register("ATT-Search", {
 	title = "ATT-Search",
 	icon = "Interface\\Icons\\INV_Misc_Spyglass_03",
-	version = "1.3.0",
+	version = "1.3.1",
 	seen = "ATTSearchWhatsNew",
 	saved = { "ATTSearchDB", "ATTSearchSettings" },
 	changes = {
+		{ "1.3.1",
+			"Shift+click an achievement (or Shift+Enter) to open it in the game's Achievements window. Other results still get a waypoint, and so do achievements on game versions without an Achievements window (Classic Era, TBC Anniversary).",
+		},
 		{ "1.3.0",
 			"Search by ID: type a number to find every item, quest, NPC, achievement, spell and more whose ID starts with it, the exact ID first. It finds things whose names haven't loaded yet, too.",
 			"Put a kind in front to narrow it down: |cffffd100item 19019|r, |cffffd100quest:1234|r, |cffffd100npc 5|r, |cffffd100ach 6|r (also spell, mount, pet, toy, recipe, currency, faction, title, map, instance, encounter, object, criteria, decor and illusion).",
@@ -56,10 +59,6 @@ ArchdudeWhatsNew:Register("ATT-Search", {
 			"Fixed quest names in ATT's list turning into \"Quest #1234*\" during party sync. Background name loading now pauses during party sync and for a while after it ends, and when the server is slow or refuses.",
 			"New |cffffd100/atts lookups off|r (and |cffffd100on|r): stops ATT-Search's background name loading. Search still finds every name the game has already loaded. The setting is saved.",
 			"New |cffffd100/atts status|r: shows whether background name loading is running or paused, and why. Handy for bug reports.",
-		},
-		{ "1.1.6",
-			"Fixed a long freeze, and ATT's list staying on \"Retrieving data\", on a fresh game cache (new install, cleared Cache folder or a new patch). Background name loading now starts later and slower, and only speeds up while your frame rate is healthy.",
-			"The rows you're looking at in ATT's list no longer wait behind ATT-Search's background loading.",
 		},
 	},
 })

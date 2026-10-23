@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.1
+- Shift+click an achievement (or Shift+Enter) to open it in the game's Achievements window. Other results still get a waypoint, and so do achievements on game versions without an Achievements window (Classic Era, TBC Anniversary).
+
 ## 1.3.0
 - Search by ID: type a number to find every item, quest, NPC, achievement, spell and more whose ID starts with it, the exact ID first. It finds things whose names haven't loaded yet, too.
 - Put a kind in front to narrow it down: `item 19019`, `quest:1234`, `npc 5`, `ach 6` (also spell, mount, pet, toy, recipe, currency, faction, title, map, instance, encounter, object, criteria, decor and illusion).

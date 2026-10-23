@@ -36,9 +36,9 @@ Unofficial companion for All The Things, made with the ATT author's blessing. No
 ### Features
 - **Results as you type**, each with its icon and where it sits in the list (e.g. Northrend > Borean Tundra > Quests).
 - **Search by ID:** type an item, quest, NPC or achievement ID, or narrow it with `item 19019` or `quest:1234`.
-- **See what you have:** a green check when it's collected, a red cross when it's not, and progress like 5/12 for zones and vendors.
+- **See what you have:** a green check or red cross for collected, and progress like 5/12 for zones and vendors.
 - **Know why something is hidden:** results your ATT settings hide are greyed out and name the filter, e.g. "Horde only (Race filter)".
-- **Waypoints** with TomTom or the map pin.
+- **Shift+click** for a waypoint (TomTom or the map pin), or to open an achievement in the Achievements window.
 - **Every item searchable,** even ones the game hasn't loaded yet. Names load once and stay saved.
 - **Gentle on your game:** it slows down when your frame rate drops, and pauses in combat, boss fights and Mythic+.
 - **What's New:** after an update, a window shows what changed.
@@ -47,7 +47,7 @@ Unofficial companion for All The Things, made with the ATT author's blessing. No
 ### How to use
 1. Open the ATT main list. The search bar sits on its top edge (drag it to move the window).
 2. Type 3 or more letters, or an ID.
-3. Arrow keys or Tab to move, **Enter** or click to show it in the list, **Shift+Enter** for a waypoint, **Esc** to close.
+3. Arrow keys or Tab to move, **Enter** or click to show it in the list, **Shift+Enter** like Shift+click, **Esc** to close.
 
 **/atts <text>** searches right away. There's also a key binding.
 
@@ -64,11 +64,11 @@ Unofficial companion for All The Things, made with the ATT author's blessing. No
 
 ## B. Upload File form
 
-**File:** `dist\ATT-Search-1.3.0.zip`
+**File:** `dist\ATT-Search-1.3.1.zip`
 
 **Display name**
 ```
-ATT-Search 1.3.0
+ATT-Search 1.3.1
 ```
 
 **Release type:** `Release`
@@ -84,10 +84,8 @@ ATT-Search 1.3.0
 
 **Changelog** (paste only the newest part; paste older parts too if they never went up)
 ```markdown
-1.3.0
-- Search by ID: type a number to find every item, quest, NPC, achievement, spell and more whose ID starts with it, the exact ID first. It finds things whose names haven't loaded yet, too.
-- Put a kind in front to narrow it down: `item 19019`, `quest:1234`, `npc 5`, `ach 6` (also spell, mount, pet, toy, recipe, currency, faction, title, map, instance, encounter, object, criteria, decor and illusion).
-- ID searches work with just one or two digits, and each result shows the ID it matched.
+1.3.1
+- Shift+click an achievement (or Shift+Enter) to open it in the game's Achievements window. Other results still get a waypoint, and so do achievements on game versions without an Achievements window (Classic Era, TBC Anniversary).
 ```
 
 **Related projects:** add as **Required Dependency**:
