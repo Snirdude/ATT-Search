@@ -92,7 +92,11 @@ local function ShowTooltip(row, result)
 	end
 	AddIDLines(GameTooltip, group)
 	GameTooltip:AddLine(L.CLICK_HINT, HINT_R, HINT_G, HINT_B)
-	if ATT.HasCoords(group) then GameTooltip:AddLine(L.SHIFT_CLICK_HINT, HINT_R, HINT_G, HINT_B) end
+	if ATT.GetAchievementID(group) and Util.CanOpenAchievements() then
+		GameTooltip:AddLine(L.SHIFT_CLICK_ACHIEVEMENT_HINT, HINT_R, HINT_G, HINT_B)
+	elseif ATT.HasCoords(group) then
+		GameTooltip:AddLine(L.SHIFT_CLICK_HINT, HINT_R, HINT_G, HINT_B)
+	end
 	GameTooltip:Show()
 end
 

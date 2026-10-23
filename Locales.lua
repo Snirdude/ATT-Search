@@ -40,6 +40,7 @@ L.HIDDEN_ROW = "Hidden: %s"
 L.HIDDEN_TOOLTIP = "Hidden in the main list: %s"
 L.CLICK_HINT = "Click to show it in the main list"
 L.SHIFT_CLICK_HINT = "Shift+click to set a waypoint"
+L.SHIFT_CLICK_ACHIEVEMENT_HINT = "Shift+click to open it in the Achievements window"
 
 -- Id labels in tooltips, by ATT field name (fields without a label show the field name)
 L.ID_LABELS = {

@@ -121,6 +121,12 @@ function ATT.GetKey(group)
 	return key, Get(group, key)
 end
 
+-- The achievement's ID when the group is an achievement (not one of its criteria), or nil.
+function ATT.GetAchievementID(group)
+	local key, id = ATT.GetKey(group)
+	if key == "achievementID" and type(id) == "number" and id > 0 then return id end
+end
+
 -- A numeric id field (itemID, spellID...), or nil.
 function ATT.GetID(group, field)
 	local id = Get(group, field)

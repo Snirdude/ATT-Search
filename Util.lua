@@ -63,6 +63,34 @@ function Util.FormatNumber(n)
 	return text
 end
 
+-- The game's Achievements window. Classic Era and TBC Anniversary have none (their UI has no
+-- loader for it), even though All The Things lists achievements there.
+function Util.CanOpenAchievements()
+	return _G.AchievementFrame ~= nil or type(_G.AchievementFrame_LoadUI) == "function"
+end
+
+-- Opens the Achievements window on an achievement, the way the game's own achievement alerts
+-- do when clicked. Returns false when the game has no such achievement or no window for it.
+function Util.OpenAchievement(achievementID)
+	if not (Util.CanOpenAchievements() and GetAchievementInfo and GetAchievementInfo(achievementID)) then
+		return false
+	end
+	if not _G.AchievementFrame then _G.AchievementFrame_LoadUI() end
+	local frame = _G.AchievementFrame
+	if not (frame and _G.AchievementFrame_ToggleAchievementFrame and _G.AchievementFrame_SelectAchievement) then
+		return false
+	end
+	if not frame:IsShown() then
+		local guild = C_AchievementInfo and C_AchievementInfo.IsGuildAchievement
+			and C_AchievementInfo.IsGuildAchievement(achievementID)
+		_G.AchievementFrame_ToggleAchievementFrame(false, guild)
+	end
+	-- The window can be turned off (some game modes); then there's nothing to select in.
+	if not frame:IsShown() then return false end
+	_G.AchievementFrame_SelectAchievement(achievementID)
+	return true
+end
+
 local PREFIX = "|cff4AA7FFATT-Search|r: "
 function Util.Print(message)
 	DEFAULT_CHAT_FRAME:AddMessage(PREFIX .. message)

@@ -182,17 +182,20 @@ local function Open(index)
 	end
 end
 
--- Shift+click / Shift+Enter: set a waypoint to the result.
-local function Waypoint(index)
+-- Shift+click / Shift+Enter: open an achievement in the game's Achievements window, and set a
+-- waypoint to anything else (or to an achievement the window can't show).
+local function ShiftOpen(index)
 	local result = model.results[index]
 	if not result then return end
 	HideResults()
 	box:ClearFocus()
+	local achievementID = ATT.GetAchievementID(result.group)
+	if achievementID and Util.OpenAchievement(achievementID) then return end
 	if not ATT.AddWaypoint(result.group) then Util.Print(L.NO_WAYPOINTS) end
 end
 
 local function Activate(index, shift)
-	if shift then Waypoint(index) else Open(index) end
+	if shift then ShiftOpen(index) else Open(index) end
 end
 
 -- Construction ---------------------------------------------------------------
